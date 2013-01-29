@@ -1,0 +1,137 @@
+// spring-data-rest-tck - Test suite for the Spring Data REST exporter
+ext {
+  gradleScriptDir = "${rootProject.projectDir}/gradle"
+
+  // Logging
+  slf4jVersion = "1.7.2"
+  logbackVersion = "1.0.9"
+
+  // Spring
+  //springVersion = "3.1.3.RELEASE"
+  springVersion = "3.2.0.RELEASE"
+  hateoasVersion = "0.4.0.RELEASE"
+  sdCommonsVersion = "1.4.0.RELEASE"
+  sdJpaVersion = "1.2.0.RELEASE"
+  sdMongoVersion = "1.1.1.RELEASE"
+  sdGemfireVersion = "1.2.2.RELEASE"
+  sdRestVersion = "1.0.0.RELEASE"
+
+  // Libraries
+  jacksonVersion = "2.1.2"
+  hibernateVersion = "4.1.7.Final"
+  hibernateValidatorVersion = "4.3.0.Final"
+
+  // Supporting libraries
+  cglibVersion = "2.2.2"
+
+  // Testing
+  junitVersion = "4.11"
+  hamcrestVersion = "1.3"
+  jmockVersion = "2.5.1"
+  jettyVersion = "8.1.8.v20121106"
+}
+
+apply plugin: "java"
+apply plugin: "idea"
+apply plugin: "eclipse"
+apply plugin: "war"
+apply from: "${gradleScriptDir}/ide.gradle"
+
+group = "org.springframework.data"
+description = "Spring Data REST test suite."
+
+configurations.all {
+  exclude group: "commons-logging"
+  exclude module: "slf4j-log4j12"
+}
+
+project.sourceCompatibility = 1.7
+project.targetCompatibility = 1.7
+
+[compileJava, compileTestJava]*.options*.compilerArgs = ["-Xlint:none", "-g"]
+
+sourceSets.test.resources.srcDirs = ["src/test/resources", "src/test/java"]
+
+repositories {
+  maven { url "http://repo.springsource.org/libs-release" }
+  //maven { url "http://repo.springsource.org/libs-milestone" }
+  maven { url "http://repo.springsource.org/libs-snapshot" }
+}
+
+dependencies {
+  // Logging
+  compile "org.slf4j:slf4j-api:$slf4jVersion"
+  compile "org.slf4j:jcl-over-slf4j:$slf4jVersion"
+  compile("ch.qos.logback:logback-classic:$logbackVersion") { force = true }
+
+  // JPA
+  compile "org.hibernate.javax.persistence:hibernate-jpa-2.0-api:1.0.1.Final"
+
+  // Jackson
+  //compile "com.fasterxml.jackson.datatype:jackson-datatype-joda:$jacksonVersion"
+  //compile "com.fasterxml.jackson.datatype:jackson-datatype-hibernate4:$jacksonVersion"
+
+  // Hibernate
+  runtime("org.hibernate:hibernate-entitymanager:$hibernateVersion") { force = true }
+  runtime("org.hibernate:hibernate-validator:$hibernateValidatorVersion") { force = true }
+
+  compile("com.mysema.querydsl:querydsl-jpa:2.8.2") {
+    exclude module: "cglib"
+  }
+
+  // Spring
+  //compile("org.springframework:spring-aop:$springVersion") { force = true }
+  //compile("org.springframework:spring-asm:$springVersion") { force = true }
+  compile("org.springframework:spring-beans:$springVersion") { force = true }
+  compile("org.springframework:spring-context:$springVersion") { force = true }
+  compile("org.springframework:spring-core:$springVersion") { force = true }
+  //compile("org.springframework:spring-expression:$springVersion") { force = true }
+  //compile("org.springframework:spring-jdbc:$springVersion") { force = true }
+  compile("org.springframework:spring-orm:$springVersion") { force = true }
+  compile("org.springframework:spring-tx:$springVersion") { force = true }
+  //compile("org.springframework:spring-web:$springVersion") { force = true }
+  compile("org.springframework:spring-webmvc:$springVersion") { force = true }
+  compile("org.springframework.hateoas:spring-hateoas:$hateoasVersion") { force = true }
+
+  // JsonPath
+  compile "com.jayway.jsonpath:json-path:0.8.1"
+
+  // Spring Data
+  compile("org.springframework.data:spring-data-rest-webmvc:$sdRestVersion") {
+    exclude module: "hibernate-core"
+    exclude module: "hibernate-entitymanager"
+    exclude module: "hibernate-validator"
+    exclude module: "cglib-nodep"
+  }
+  compile "org.springframework.data:spring-data-jpa:$sdJpaVersion"
+  //compile "org.springframework.data:spring-data-mongodb:$sdMongoVersion"
+  //compile "org.springframework.data:spring-data-gemfire:$sdGemfireVersion"
+
+  // HSQL
+  runtime "org.hsqldb:hsqldb:2.2.8"
+
+  // APIs
+  providedCompile "javax.servlet:javax.servlet-api:3.0.1"
+
+  // Testing
+  testCompile "junit:junit-dep:$junitVersion"
+  testCompile "org.hamcrest:hamcrest-library:$hamcrestVersion"
+  testCompile("org.springframework:spring-test:$springVersion") { force = true }
+  testRuntime("org.springframework:spring-context-support:$springVersion") { force = true }
+}
+
+task wrapper(type: Wrapper) {
+  description = "Generates gradlew[.bat] scripts"
+  gradleVersion = "1.3"
+
+  doLast() {
+    def gradleOpts = "-XX:MaxPermSize=1024m -Xmx1024m"
+    def gradleBatOpts = "$gradleOpts -XX:MaxHeapSize=256m"
+    File wrapperFile = file("gradlew")
+    wrapperFile.text = wrapperFile.text.replace("DEFAULT_JVM_OPTS=",
+                                                "GRADLE_OPTS=\"$gradleOpts \$GRADLE_OPTS\"\nDEFAULT_JVM_OPTS=")
+    File wrapperBatFile = file("gradlew.bat")
+    wrapperBatFile.text = wrapperBatFile.text.replace("set DEFAULT_JVM_OPTS=",
+                                                      "set GRADLE_OPTS=$gradleBatOpts %GRADLE_OPTS%\nset DEFAULT_JVM_OPTS=")
+  }
+}
