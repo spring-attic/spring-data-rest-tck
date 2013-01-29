@@ -19,12 +19,24 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
+ * Tests that check the REST API of JPA entities that are exported through Spring Data REST.
+ *
  * @author Jon Brisbin
  */
 public class JpaTckTests extends AbstractTckTest {
 
+  static final String SELF_REL      = "self";
+  static final String CUSTOMERS_REL = "customer";
+  static final String CUSTOMER_REL  = "customer.Customer";
+  static final String ADDRESSES_REL = "customer.Customer.addresses";
+
+  /**
+   * Test whether {@link org.springframework.data.repository.CrudRepository}s exported are discoverable.
+   *
+   * @throws Exception
+   */
   @Test
-  public void repositoriesAreDiscoverable() throws Exception {
+  public void testDiscoverability() throws Exception {
     Link customer = findCustomerLink();
 
     assertNotNull("Exposes a Link to manage Customers",
@@ -35,8 +47,14 @@ public class JpaTckTests extends AbstractTckTest {
                      endsWith("/customer")));
   }
 
+  /**
+   * Test whether the {@link org.springframework.data.rest.tck.jpa.repository.CustomerRepository} exposes a CREATE
+   * feature.
+   *
+   * @throws Exception
+   */
   @Test
-  public void repositoriesExposeCreate() throws Exception {
+  public void testCreate() throws Exception {
     for(String href : loadCustomers()) {
       MockHttpServletResponse response = findEntity(href);
       String jsonBody = response.getContentAsString();
@@ -45,13 +63,38 @@ public class JpaTckTests extends AbstractTckTest {
                  JsonPath.read(jsonBody, "lastname").toString(),
                  is("Doe"));
       assertThat("Entity contains self Link",
-                 links.findLinkWithRel("self", jsonBody),
+                 links.findLinkWithRel(SELF_REL, jsonBody),
                  notNullValue());
       assertThat("Entity maintains addresses as Links",
-                 links.findLinkWithRel("customer.Customer.addresses", jsonBody),
+                 links.findLinkWithRel(ADDRESSES_REL, jsonBody),
                  notNullValue());
     }
 
+  }
+
+  @Test
+  public void testExposesAccessToLinkedEntities() throws Exception {
+    for(Link l : findCustomerLinks()) {
+      MockHttpServletResponse response = findEntity(l.getHref());
+      String jsonBody = response.getContentAsString();
+
+      List<Link> addresses = links.findLinksWithRel(ADDRESSES_REL, jsonBody);
+
+      assertThat("Has linked Addresses",
+                 addresses,
+                 notNullValue());
+      assertThat("Addresses aren't empty",
+                 addresses.size(),
+                 greaterThan(0));
+
+      Link addressLink = addresses.get(0);
+      MockHttpServletResponse addrResponse = findEntity(addressLink.getHref());
+      String addrJsonBody = addrResponse.getContentAsString();
+
+      assertThat("Has valid street",
+                 String.format("%s", JsonPath.read(addrJsonBody, "$content[0].street")),
+                 is("123 W 1st Street"));
+    }
   }
 
   private MockHttpServletResponse getRoot() throws Exception {
@@ -64,7 +107,19 @@ public class JpaTckTests extends AbstractTckTest {
 
   private Link findCustomerLink() throws Exception {
     MockHttpServletResponse response = getRoot();
-    return links.findLinkWithRel("customer", response.getContentAsString());
+    return links.findLinkWithRel(CUSTOMERS_REL, response.getContentAsString());
+  }
+
+  private List<Link> findCustomerLinks() throws Exception {
+    Link customer = findCustomerLink();
+
+    MockHttpServletResponse response = mockMvc
+        .perform(get(customer.getHref())
+                     .accept(COMPACT_TYPE))
+        .andExpect(status().isOk())
+        .andReturn().getResponse();
+
+    return links.findLinksWithRel(CUSTOMER_REL, response.getContentAsString());
   }
 
   private List<String> loadCustomers() throws Exception {

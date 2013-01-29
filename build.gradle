@@ -14,6 +14,7 @@ ext {
   sdJpaVersion = "1.2.0.RELEASE"
   sdMongoVersion = "1.1.1.RELEASE"
   sdGemfireVersion = "1.2.2.RELEASE"
+  sdNeo4jVersion = "2.0.1.RELEASE"
   sdRestVersion = "1.0.0.RELEASE"
 
   // Libraries

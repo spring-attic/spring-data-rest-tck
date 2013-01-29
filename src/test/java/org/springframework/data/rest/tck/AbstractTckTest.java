@@ -8,6 +8,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.data.rest.webmvc.RepositoryRestMvcConfiguration;
 import org.springframework.hateoas.LinkDiscoverer;
 import org.springframework.hateoas.core.DefaultLinkDiscoverer;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.orm.jpa.support.OpenEntityManagerInViewFilter;
 import org.springframework.test.context.ContextConfiguration;
@@ -28,6 +29,7 @@ import org.springframework.web.context.support.AnnotationConfigWebApplicationCon
 })
 public abstract class AbstractTckTest {
 
+  protected static final MediaType COMPACT_TYPE = MediaType.parseMediaType("application/x-spring-data-compact+json");
   protected static AnnotationConfigWebApplicationContext webAppCtx;
   protected static MockMvc                               mockMvc;
   protected static LinkDiscoverer                        links;
