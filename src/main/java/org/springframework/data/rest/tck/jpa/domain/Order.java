@@ -16,7 +16,6 @@
 package org.springframework.data.rest.tck.jpa.domain;
 
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import javax.persistence.CascadeType;
@@ -37,7 +36,7 @@ import org.springframework.util.Assert;
 @Table(name = "Orders")
 public class Order extends AbstractEntity {
 
-  @ManyToOne(optional = false)
+  @ManyToOne(optional = false, cascade = CascadeType.ALL)
   private Customer customer;
   @ManyToOne
   private Address  billingAddress;
@@ -108,7 +107,7 @@ public class Order extends AbstractEntity {
    * @return
    */
   public Set<LineItem> getLineItems() {
-    return Collections.unmodifiableSet(lineItems);
+    return lineItems;
   }
 
   /**

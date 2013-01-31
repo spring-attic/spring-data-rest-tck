@@ -1,0 +1,8 @@
+{
+	"customer": {"href": "%CUSTOMER_HREF%"},
+	"shippingAddress": {"href": "%ADDR_HREF%"},
+	"billingAddress": {"href": "%ADDR_HREF%"},
+	"lineItems": [
+		{"product":	{"href": "%PRODUCT_HREF%"}, "price": 100.0, "amount": 1}
+	]
+}

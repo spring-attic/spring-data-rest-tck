@@ -29,7 +29,8 @@ import org.springframework.web.context.support.AnnotationConfigWebApplicationCon
 })
 public abstract class AbstractTckTest {
 
-  protected static final MediaType COMPACT_TYPE = MediaType.parseMediaType("application/x-spring-data-compact+json");
+  protected static final MediaType COMPACT_JSON = MediaType.parseMediaType("application/x-spring-data-compact+json");
+  protected static final MediaType VERBOSE_JSON = MediaType.parseMediaType("application/x-spring-data-verbose+json");
   protected static AnnotationConfigWebApplicationContext webAppCtx;
   protected static MockMvc                               mockMvc;
   protected static LinkDiscoverer                        links;
