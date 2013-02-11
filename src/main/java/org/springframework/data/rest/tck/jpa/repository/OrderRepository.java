@@ -17,23 +17,29 @@ package org.springframework.data.rest.tck.jpa.repository;
 
 import java.util.List;
 
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.PagingAndSortingRepository;
-
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.rest.tck.jpa.domain.Customer;
 import org.springframework.data.rest.tck.jpa.domain.Order;
 
 /**
  * Repository to access {@link Order}s.
- * 
+ *
  * @author Oliver Gierke
  */
 public interface OrderRepository extends PagingAndSortingRepository<Order, Long> {
 
-	/**
-	 * Returns all {@link Order}s of the given {@link Customer}.
-	 * 
-	 * @param customer
-	 * @return
-	 */
-	List<Order> findByCustomer(Customer customer);
+  /**
+   * Returns all {@link Order}s of the given {@link Customer}.
+   *
+   * @param customer
+   *
+   * @return
+   */
+  List<Order> findByCustomer(Customer customer);
+
+  @Query("select o from Order o where o.customer.id = :customerId")
+  List<Order> findByCustomerId(@Param("customerId") Long customerId);
+
 }

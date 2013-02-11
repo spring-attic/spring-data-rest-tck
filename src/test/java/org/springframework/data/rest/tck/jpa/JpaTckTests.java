@@ -5,19 +5,19 @@ import static org.junit.Assert.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 
 import com.jayway.jsonpath.JsonPath;
+import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.rest.tck.AbstractTckTest;
 import org.springframework.hateoas.Link;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.test.web.servlet.ResultActions;
 
 /**
  * Tests that check the REST API of JPA entities that are exported through Spring Data REST.
@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.ResultActions;
  */
 public class JpaTckTests extends AbstractTckTest {
 
+  static final Logger LOG           = LoggerFactory.getLogger(JpaTckTests.class);
   static final String SELF_REL      = "self";
   static final String CUSTOMERS_REL = "customer";
   static final String CUSTOMER_REL  = "customer.Customer";
@@ -34,6 +35,16 @@ public class JpaTckTests extends AbstractTckTest {
   static final String PRODUCT_REL   = "product.Product";
   static final String ORDERS_REL    = "order";
   static final String ORDER_REL     = "order.Order";
+  static final String LINEITEMS_REL = "lineItem";
+  static final String LINEITEM_REL  = "lineItem.LineItem";
+
+  @Override protected void loadData() {
+    rootCtx.getBean("testDataLoader", TestDataLoader.class).loadData();
+  }
+
+  @Override protected void deleteData() {
+    rootCtx.getBean("testDataLoader", TestDataLoader.class).deleteData();
+  }
 
   /**
    * Test whether {@link org.springframework.data.repository.CrudRepository}s exported are discoverable.
@@ -42,7 +53,7 @@ public class JpaTckTests extends AbstractTckTest {
    */
   @Test
   public void testDiscoverability() throws Exception {
-    Link customer = findCustomersLink();
+    Link customer = customersLink();
 
     assertNotNull("Exposes a Link to manage Customers",
                   customer);
@@ -59,7 +70,8 @@ public class JpaTckTests extends AbstractTckTest {
    */
   @Test
   public void testListsEntities() throws Exception {
-    Link customer = findCustomersLink();
+    Link customer = customersLink();
+
     MockHttpServletResponse response = request(customer.getHref());
     String jsonBody = response.getContentAsString();
 
@@ -75,13 +87,11 @@ public class JpaTckTests extends AbstractTckTest {
    */
   @Test
   public void testLinksToEntities() throws Exception {
-    Link customer = findCustomersLink();
-    MockHttpServletResponse response = requestCompact(customer.getHref());
-    String jsonBody = response.getContentAsString();
+    List<Link> customers = linksToCustomers();
 
     assertThat("Entity is referenced as a Link",
-               JsonPath.read(jsonBody, "$links[0].rel").toString(),
-               is("customer.Customer"));
+               customers,
+               Matchers.<Link>iterableWithSize(2));
   }
 
   /**
@@ -92,8 +102,8 @@ public class JpaTckTests extends AbstractTckTest {
    */
   @Test
   public void testCreate() throws Exception {
-    for(String href : loadCustomers()) {
-      MockHttpServletResponse response = request(href);
+    for(Link l : linksToCustomers()) {
+      MockHttpServletResponse response = request(l.getHref());
       String jsonBody = response.getContentAsString();
 
       assertThat("Customer is a Doe",
@@ -116,20 +126,14 @@ public class JpaTckTests extends AbstractTckTest {
    */
   @Test
   public void testExposesAccessToLinkedEntities() throws Exception {
-    for(Link l : findCustomersLinks()) {
-      MockHttpServletResponse response = request(l.getHref());
-      String jsonBody = response.getContentAsString();
-
-      List<Link> addresses = links.findLinksWithRel(ADDRESSES_REL, jsonBody);
+    for(Link l : linksToCustomers()) {
+      List<Link> addresses = discover(l, ADDRESSES_REL);
 
       assertThat("Has linked Addresses",
                  addresses,
-                 notNullValue());
-      assertThat("Addresses aren't empty",
-                 addresses.size(),
-                 greaterThan(0));
+                 Matchers.<Link>iterableWithSize(1));
 
-      Link addressLink = addresses.get(0);
+      Link addressLink = addresses.iterator().next();
       MockHttpServletResponse addrResponse = request(addressLink.getHref());
       String addrJsonBody = addrResponse.getContentAsString();
 
@@ -146,7 +150,7 @@ public class JpaTckTests extends AbstractTckTest {
    */
   @Test
   public void testExposesUpdate() throws Exception {
-    Link customer = findCustomersLinks().iterator().next();
+    Link customer = linksToCustomers().iterator().next();
     byte[] bytes = Files.readAllBytes(Paths.get("src/test/resources/customer-update.txt"));
 
     mockMvc
@@ -169,11 +173,7 @@ public class JpaTckTests extends AbstractTckTest {
    */
   @Test
   public void testExposesDelete() throws Exception {
-    List<Link> customers = findCustomersLinks();
-    assertThat("Customers exist to work with",
-               customers.size(),
-               greaterThan(0));
-
+    List<Link> customers = linksToCustomers();
     Link customer = customers.get(customers.size() - 1);
 
     mockMvc
@@ -185,19 +185,18 @@ public class JpaTckTests extends AbstractTckTest {
         .andExpect(status().isNotFound());
   }
 
+  /**
+   * Test that entities can be created with linked entities.
+   *
+   * @throws Exception
+   */
   @Test
   public void testCreatesEntityWithLinkedProperties() throws Exception {
-    List<Link> customers = findCustomersLinks();
-    assertThat("Customers exist to work with",
-               customers.size(),
-               greaterThan(0));
-    List<Link> products = findProductsLinks();
-    assertThat("Products exist to work with",
-               products.size(),
-               greaterThan(0));
+    List<Link> customers = linksToCustomers();
+    List<Link> products = linksToProducts();
 
     Link customer = customers.get(0);
-    Link addresses = follow(customer, "customer.Customer.addresses");
+    Link addresses = discover(customer, "customer.Customer.addresses").get(0);
     String addressesBody = requestCompact(addresses.getHref()).getContentAsString();
     String addrHref = JsonPath.read(addressesBody, "$links[0].href");
     Link addrSelf = links.findLinkWithRel("self", request(addrHref).getContentAsString());
@@ -209,7 +208,7 @@ public class JpaTckTests extends AbstractTckTest {
     jsonBody = jsonBody.replaceAll("%ADDR_HREF%", addrSelf.getHref());
     jsonBody = jsonBody.replaceAll("%PRODUCT_HREF%", product.getHref());
 
-    Link orders = findOrdersLink();
+    Link orders = ordersLink();
     String loc = mockMvc
         .perform(post(orders.getHref())
                      .contentType(MediaType.APPLICATION_JSON)
@@ -221,8 +220,8 @@ public class JpaTckTests extends AbstractTckTest {
     MockHttpServletResponse checkResp = request(loc);
     String checkJsonBody = checkResp.getContentAsString();
 
-    Link lineItemsLink = follow(links.findLinkWithRel("order.Order.lineItems", checkJsonBody),
-                                "order.Order.lineItems.LineItem");
+    Link lineItemsLink = discover(links.findLinkWithRel("order.Order.lineItems", checkJsonBody),
+                                  "order.Order.lineItems.LineItem").get(0);
     assertNotNull("LineItems links is not null", lineItemsLink);
 
     mockMvc
@@ -239,53 +238,93 @@ public class JpaTckTests extends AbstractTckTest {
         .andExpect(jsonPath("lastname", is("Doe")));
   }
 
-  private Link findCustomersLink() throws Exception {
-    MockHttpServletResponse response = request("/");
-    return links.findLinkWithRel(CUSTOMERS_REL, response.getContentAsString());
+  @Test
+  public void testAddNewLinkedEntity() throws Exception {
+    testCreatesEntityWithLinkedProperties();
+
+    List<Link> customers = linksToCustomers();
+    List<Link> products = linksToProducts();
+    Link lineItemsLink = lineItemsLink();
+
+    String jsonBody = new String(Files.readAllBytes(Paths.get("src/test/resources/lineitem-json.txt")));
+    jsonBody = jsonBody.replaceAll("%PRODUCT_HREF%", products.get(products.size() - 1).getHref());
+
+    mockMvc
+        .perform(post(lineItemsLink.getHref())
+                     .contentType(MediaType.APPLICATION_JSON)
+                     .content(jsonBody))
+        .andExpect(status().isCreated());
+
+
   }
 
-  private Link findProductsLink() throws Exception {
-    MockHttpServletResponse response = request("/");
-    return links.findLinkWithRel(PRODUCTS_REL, response.getContentAsString());
+  @Test
+  public void testUpdateExistingLinkedEntity() throws Exception {
+    List<Link> products = linksToProducts();
+    Link orderLink = linksToOrders().get(0);
+    Link orderLineItemsLink = discover(orderLink, "order.Order.lineItems").get(0);
+
+    String jsonBody = new String(Files.readAllBytes(Paths.get("src/test/resources/lineitem-json.txt")));
+    jsonBody = jsonBody.replaceAll("%PRODUCT_HREF%", products.get(products.size() - 1).getHref());
+
+    mockMvc
+        .perform(post(orderLineItemsLink.getHref())
+                     .contentType(MediaType.APPLICATION_JSON)
+                     .content(jsonBody.getBytes()))
+        .andExpect(status().isCreated());
+
+    assertThat("Order now contains additional LineItem",
+               discover(orderLineItemsLink, LINEITEM_REL),
+               Matchers.<Link>iterableWithSize(2));
   }
 
-  private Link findOrdersLink() throws Exception {
-    MockHttpServletResponse response = request("/");
-    return links.findLinkWithRel(ORDERS_REL, response.getContentAsString());
+  private List<Link> discover(String rel) throws Exception {
+    return discover(new Link("/"), rel);
   }
 
-  private List<Link> findCustomersLinks() throws Exception {
-    Link customer = findCustomersLink();
-    MockHttpServletResponse response = requestCompact(customer.getHref());
-    return links.findLinksWithRel(CUSTOMER_REL, response.getContentAsString());
+  private List<Link> discover(Link root, String rel) throws Exception {
+    String s = mockMvc
+        .perform(get(root.getHref()).accept(COMPACT_JSON))
+        .andExpect(status().isOk())
+        .andExpect(linkWithRel(rel))
+        .andReturn().getResponse().getContentAsString();
+    return links.findLinksWithRel(rel, s);
   }
 
-  private List<Link> findProductsLinks() throws Exception {
-    Link products = findProductsLink();
-    MockHttpServletResponse response = requestCompact(products.getHref());
-    return links.findLinksWithRel(PRODUCT_REL, response.getContentAsString());
+  private Link discoverRootLink(String rel) throws Exception {
+    List<Link> l = discover(rel);
+    assertThat(String.format("Link rel='%s' is exposed", rel),
+               l,
+               Matchers.<Link>iterableWithSize(1));
+    return l.get(0);
   }
 
-  private List<String> loadCustomers() throws Exception {
-    Link customer = findCustomersLink();
-    List<String> created = new ArrayList<>();
-    for(String line : Files.readAllLines(Paths.get("src/test/resources/customer-json.txt"),
-                                         Charset.defaultCharset())) {
-      String loc = send(customer.getHref(), MediaType.APPLICATION_JSON, line.getBytes())
-          .andExpect(status().isCreated())
-          .andReturn().getResponse().getHeader("Location");
-
-      created.add(loc);
-    }
-
-    return created;
+  private Link customersLink() throws Exception {
+    return discoverRootLink(CUSTOMERS_REL);
   }
 
-  private ResultActions send(String href, MediaType contentType, byte[] body) throws Exception {
-    return mockMvc
-        .perform(post(href)
-                     .contentType(contentType)
-                     .content(body));
+  private Link productsLink() throws Exception {
+    return discoverRootLink(PRODUCTS_REL);
+  }
+
+  private Link ordersLink() throws Exception {
+    return discoverRootLink(ORDERS_REL);
+  }
+
+  private Link lineItemsLink() throws Exception {
+    return discoverRootLink(LINEITEMS_REL);
+  }
+
+  private List<Link> linksToCustomers() throws Exception {
+    return discover(customersLink(), CUSTOMER_REL);
+  }
+
+  private List<Link> linksToProducts() throws Exception {
+    return discover(productsLink(), PRODUCT_REL);
+  }
+
+  private List<Link> linksToOrders() throws Exception {
+    return discover(ordersLink(), ORDER_REL);
   }
 
   private MockHttpServletResponse request(String href, MediaType contentType) throws Exception {
@@ -302,12 +341,6 @@ public class JpaTckTests extends AbstractTckTest {
 
   private MockHttpServletResponse requestCompact(String href) throws Exception {
     return request(href, COMPACT_JSON);
-  }
-
-  private Link follow(Link link, String nextRel) throws Exception {
-    MockHttpServletResponse response = requestCompact(link.getHref());
-    String jsonBody = response.getContentAsString();
-    return links.findLinkWithRel(nextRel, jsonBody);
   }
 
 }
