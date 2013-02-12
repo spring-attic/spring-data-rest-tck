@@ -36,7 +36,7 @@ import org.springframework.util.Assert;
 @Table(name = "Orders")
 public class Order extends AbstractEntity {
 
-  @ManyToOne(optional = false, cascade = CascadeType.REMOVE)
+  @ManyToOne(optional = false, cascade = CascadeType.ALL)
   private Customer customer;
   @ManyToOne(cascade = CascadeType.ALL)
   private Address  billingAddress;

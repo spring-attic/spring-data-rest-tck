@@ -1,1 +1,1 @@
-{"content": {"product": {"href": "%PRODUCT_HREF%"}, "price": 25.0, "amount": 1}}
+{"product": {"href": "%PRODUCT_HREF%"}, "price": 25.0, "amount": 1}

@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.tck.jpa.domain.Address;
 import org.springframework.data.rest.tck.jpa.domain.Customer;
@@ -16,6 +15,7 @@ import org.springframework.data.rest.tck.jpa.domain.Order;
 import org.springframework.data.rest.tck.jpa.domain.Product;
 import org.springframework.data.rest.tck.jpa.repository.AddressRepository;
 import org.springframework.data.rest.tck.jpa.repository.CustomerRepository;
+import org.springframework.data.rest.tck.jpa.repository.LineItemRepository;
 import org.springframework.data.rest.tck.jpa.repository.OrderRepository;
 import org.springframework.data.rest.tck.jpa.repository.ProductRepository;
 import org.springframework.stereotype.Component;
@@ -24,41 +24,38 @@ import org.springframework.stereotype.Component;
  * @author Jon Brisbin
  */
 @Component
-public class TestDataLoader implements InitializingBean {
+public class TestDataLoader {
 
   private static final Logger LOG = LoggerFactory.getLogger(TestDataLoader.class);
   private final CustomerRepository customers;
   private final AddressRepository  addresses;
   private final ProductRepository  products;
   private final OrderRepository    orders;
+  private final LineItemRepository lineItems;
 
   @Autowired
   public TestDataLoader(CustomerRepository customers,
                         AddressRepository addresses,
                         ProductRepository products,
-                        OrderRepository orders) {
+                        OrderRepository orders,
+                        LineItemRepository lineItems) {
     this.customers = customers;
     this.addresses = addresses;
     this.products = products;
     this.orders = orders;
-  }
-
-  @Override public void afterPropertiesSet() throws Exception {
-    loadData();
+    this.lineItems = lineItems;
   }
 
   public void loadData() {
+    if(customers.findAll().iterator().hasNext()) {
+      return;
+    }
     List<Customer> customers = saveCustomers();
     List<Product> products = saveProducts();
 
     for(int i = 0; i < 2; i++) {
       saveOrder(customers.get(i), new Address("123 W 1st Street", "Univille", "USA"), products.get(i));
     }
-  }
-
-  public void deleteData() {
-    customers.deleteAll();
-    products.deleteAll();
   }
 
   private List<Customer> saveCustomers() {

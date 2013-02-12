@@ -14,6 +14,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.tck.AbstractTckTest;
 import org.springframework.hateoas.Link;
 import org.springframework.http.MediaType;
@@ -26,24 +27,28 @@ import org.springframework.mock.web.MockHttpServletResponse;
  */
 public class JpaTckTests extends AbstractTckTest {
 
-  static final Logger LOG           = LoggerFactory.getLogger(JpaTckTests.class);
-  static final String SELF_REL      = "self";
-  static final String CUSTOMERS_REL = "customer";
-  static final String CUSTOMER_REL  = "customer.Customer";
-  static final String ADDRESSES_REL = "customer.Customer.addresses";
-  static final String PRODUCTS_REL  = "product";
-  static final String PRODUCT_REL   = "product.Product";
-  static final String ORDERS_REL    = "order";
-  static final String ORDER_REL     = "order.Order";
-  static final String LINEITEMS_REL = "lineItem";
-  static final String LINEITEM_REL  = "lineItem.LineItem";
+  static final Logger LOG                    = LoggerFactory.getLogger(JpaTckTests.class);
+  static final String SELF_REL               = "self";
+  static final String CUSTOMERS_REL          = "customer";
+  static final String CUSTOMER_REL           = "customer.Customer";
+  static final String CUSTOMER_ADDRESSES_REL = "customer.Customer.addresses";
+  static final String CUSTOMER_ADDRESS_REL   = "customer.Customer.addresses.Address";
+  static final String PRODUCTS_REL           = "product";
+  static final String PRODUCT_REL            = "product.Product";
+  static final String ORDERS_REL             = "order";
+  static final String ORDER_REL              = "order.Order";
+  static final String ORDER_LINEITEMS_REL    = "order.Order.lineItems";
+  static final String ORDER_LINEITEM_REL     = "order.Order.lineItems.LineItem";
+  static final String LINEITEMS_REL          = "lineItem";
+  static final String LINEITEM_REL           = "lineItem.LineItem";
+  @Autowired
+  protected TestDataLoader dataLoader;
 
   @Override protected void loadData() {
-    rootCtx.getBean("testDataLoader", TestDataLoader.class).loadData();
+    dataLoader.loadData();
   }
 
   @Override protected void deleteData() {
-    rootCtx.getBean("testDataLoader", TestDataLoader.class).deleteData();
   }
 
   /**
@@ -113,7 +118,7 @@ public class JpaTckTests extends AbstractTckTest {
                  links.findLinkWithRel(SELF_REL, jsonBody),
                  notNullValue());
       assertThat("Entity maintains addresses as Links",
-                 links.findLinkWithRel(ADDRESSES_REL, jsonBody),
+                 links.findLinkWithRel(CUSTOMER_ADDRESSES_REL, jsonBody),
                  notNullValue());
     }
 
@@ -127,7 +132,7 @@ public class JpaTckTests extends AbstractTckTest {
   @Test
   public void testExposesAccessToLinkedEntities() throws Exception {
     for(Link l : linksToCustomers()) {
-      List<Link> addresses = discover(l, ADDRESSES_REL);
+      List<Link> addresses = discover(l, CUSTOMER_ADDRESSES_REL);
 
       assertThat("Has linked Addresses",
                  addresses,
@@ -196,11 +201,9 @@ public class JpaTckTests extends AbstractTckTest {
     List<Link> products = linksToProducts();
 
     Link customer = customers.get(0);
-    Link addresses = discover(customer, "customer.Customer.addresses").get(0);
-    String addressesBody = requestCompact(addresses.getHref()).getContentAsString();
-    String addrHref = JsonPath.read(addressesBody, "$links[0].href");
-    Link addrSelf = links.findLinkWithRel("self", request(addrHref).getContentAsString());
-
+    Link addrSelf = follow(discover(customer, CUSTOMER_ADDRESSES_REL).get(0),
+                           CUSTOMER_ADDRESS_REL,
+                           "self").get(0);
     Link product = products.get(0);
 
     String jsonBody = new String(Files.readAllBytes(Paths.get("src/test/resources/new-order-1.txt")));
@@ -220,8 +223,7 @@ public class JpaTckTests extends AbstractTckTest {
     MockHttpServletResponse checkResp = request(loc);
     String checkJsonBody = checkResp.getContentAsString();
 
-    Link lineItemsLink = discover(links.findLinkWithRel("order.Order.lineItems", checkJsonBody),
-                                  "order.Order.lineItems.LineItem").get(0);
+    Link lineItemsLink = follow(new Link(loc), ORDER_LINEITEMS_REL, ORDER_LINEITEM_REL).get(0);
     assertNotNull("LineItems links is not null", lineItemsLink);
 
     mockMvc
@@ -258,14 +260,26 @@ public class JpaTckTests extends AbstractTckTest {
 
   }
 
+  @SuppressWarnings({"unchecked"})
   @Test
   public void testUpdateExistingLinkedEntity() throws Exception {
     List<Link> products = linksToProducts();
+    Link lineItemsLink = lineItemsLink();
     Link orderLink = linksToOrders().get(0);
-    Link orderLineItemsLink = discover(orderLink, "order.Order.lineItems").get(0);
+    Link orderLineItemsLink = discover(orderLink, ORDER_LINEITEMS_REL).get(0);
 
     String jsonBody = new String(Files.readAllBytes(Paths.get("src/test/resources/lineitem-json.txt")));
     jsonBody = jsonBody.replaceAll("%PRODUCT_HREF%", products.get(products.size() - 1).getHref());
+
+    String lineItemLoc = mockMvc
+        .perform(post(lineItemsLink.getHref())
+                     .contentType(MediaType.APPLICATION_JSON)
+                     .content(jsonBody.getBytes()))
+        .andExpect(status().isCreated())
+        .andReturn().getResponse().getHeader("Location");
+
+    jsonBody = new String(Files.readAllBytes(Paths.get("src/test/resources/new-lineitem-json.txt")));
+    jsonBody = jsonBody.replaceAll("%LINEITEM_HREF%", lineItemLoc);
 
     mockMvc
         .perform(post(orderLineItemsLink.getHref())
@@ -274,29 +288,8 @@ public class JpaTckTests extends AbstractTckTest {
         .andExpect(status().isCreated());
 
     assertThat("Order now contains additional LineItem",
-               discover(orderLineItemsLink, LINEITEM_REL),
+               discover(orderLineItemsLink, ORDER_LINEITEM_REL),
                Matchers.<Link>iterableWithSize(2));
-  }
-
-  private List<Link> discover(String rel) throws Exception {
-    return discover(new Link("/"), rel);
-  }
-
-  private List<Link> discover(Link root, String rel) throws Exception {
-    String s = mockMvc
-        .perform(get(root.getHref()).accept(COMPACT_JSON))
-        .andExpect(status().isOk())
-        .andExpect(linkWithRel(rel))
-        .andReturn().getResponse().getContentAsString();
-    return links.findLinksWithRel(rel, s);
-  }
-
-  private Link discoverRootLink(String rel) throws Exception {
-    List<Link> l = discover(rel);
-    assertThat(String.format("Link rel='%s' is exposed", rel),
-               l,
-               Matchers.<Link>iterableWithSize(1));
-    return l.get(0);
   }
 
   private Link customersLink() throws Exception {
@@ -325,22 +318,6 @@ public class JpaTckTests extends AbstractTckTest {
 
   private List<Link> linksToOrders() throws Exception {
     return discover(ordersLink(), ORDER_REL);
-  }
-
-  private MockHttpServletResponse request(String href, MediaType contentType) throws Exception {
-    return mockMvc
-        .perform(get(href).accept(contentType))
-        .andExpect(status().isOk())
-        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andReturn().getResponse();
-  }
-
-  private MockHttpServletResponse request(String href) throws Exception {
-    return request(href, MediaType.APPLICATION_JSON);
-  }
-
-  private MockHttpServletResponse requestCompact(String href) throws Exception {
-    return request(href, COMPACT_JSON);
   }
 
 }
