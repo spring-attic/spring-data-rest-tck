@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.*;
 
+import java.util.Collections;
 import java.util.List;
 import javax.servlet.ServletContext;
 
@@ -15,7 +16,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.rest.webmvc.RepositoryRestMvcConfiguration;
+import org.springframework.data.rest.webmvc.config.RepositoryRestMvcConfiguration;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.LinkDiscoverer;
 import org.springframework.hateoas.core.DefaultLinkDiscoverer;
@@ -64,7 +65,7 @@ public abstract class AbstractTckTest {
   protected List<Link> follow(Link parent, String followRel, String childRel) throws Exception {
     List<Link> links = discover(parent, followRel);
     if(null == links || links.isEmpty()) {
-      return null;
+      return Collections.emptyList();
     }
 
     String json = mockMvc

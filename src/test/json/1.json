@@ -1,0 +1,11 @@
+{
+  "firstname": "John",
+  "lastname": "Doe",
+  "addresses": [
+    {
+      "street": "123 W 1st Street",
+      "city": "Univille",
+      "country": "USA"
+    }
+  ]
+}

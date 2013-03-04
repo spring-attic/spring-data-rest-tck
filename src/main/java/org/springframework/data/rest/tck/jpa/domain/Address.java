@@ -17,7 +17,7 @@ package org.springframework.data.rest.tck.jpa.domain;
 
 import javax.persistence.Entity;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.util.Assert;
 
 /**

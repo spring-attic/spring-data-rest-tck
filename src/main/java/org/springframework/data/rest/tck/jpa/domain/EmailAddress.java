@@ -19,8 +19,8 @@ import java.util.regex.Pattern;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-import org.codehaus.jackson.map.ser.std.ToStringSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import org.springframework.util.Assert;
 
 /**
@@ -53,7 +53,8 @@ public class EmailAddress {
   }
 
   /**
-   * Returns whether the given {@link String} is a valid {@link EmailAddress} which means you can safely instantiate the
+   * Returns whether the given {@link String} is a valid {@link EmailAddress} which means you can safely instantiate
+   * the
    * class.
    *
    * @param candidate

@@ -30,17 +30,17 @@ public class JpaTckTests extends AbstractTckTest {
   static final Logger LOG                    = LoggerFactory.getLogger(JpaTckTests.class);
   static final String SELF_REL               = "self";
   static final String CUSTOMERS_REL          = "customer";
-  static final String CUSTOMER_REL           = "customer.Customer";
-  static final String CUSTOMER_ADDRESSES_REL = "customer.Customer.addresses";
-  static final String CUSTOMER_ADDRESS_REL   = "customer.Customer.addresses.Address";
+  static final String CUSTOMER_REL           = "customer.customer";
+  static final String CUSTOMER_ADDRESSES_REL = "customer.customer.addresses";
+  static final String CUSTOMER_ADDRESS_REL   = "customer.customer.addresses.address";
   static final String PRODUCTS_REL           = "product";
-  static final String PRODUCT_REL            = "product.Product";
+  static final String PRODUCT_REL            = "product.product";
   static final String ORDERS_REL             = "order";
-  static final String ORDER_REL              = "order.Order";
-  static final String ORDER_LINEITEMS_REL    = "order.Order.lineItems";
-  static final String ORDER_LINEITEM_REL     = "order.Order.lineItems.LineItem";
+  static final String ORDER_REL              = "order.order";
+  static final String ORDER_LINEITEMS_REL    = "order.order.lineItems";
+  static final String ORDER_LINEITEM_REL     = "order.order.lineItems.lineItem";
   static final String LINEITEMS_REL          = "lineItem";
-  static final String LINEITEM_REL           = "lineItem.LineItem";
+  static final String LINEITEM_REL           = "lineItem.lineItem";
   @Autowired
   protected TestDataLoader dataLoader;
 
@@ -231,13 +231,13 @@ public class JpaTckTests extends AbstractTckTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("price", is(100.0)));
 
-    Link custLink = links.findLinkWithRel("order.Order.customer", checkJsonBody);
+    Link custLink = links.findLinkWithRel("order.order.customer", checkJsonBody);
     assertNotNull("Customer link is not null", custLink);
 
     mockMvc
         .perform(get(custLink.getHref()).accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("lastname", is("Doe")));
+        .andExpect(jsonPath("content.lastname", is("Doe")));
   }
 
   @Test
