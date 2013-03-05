@@ -53,6 +53,7 @@ project.targetCompatibility = 1.7
 sourceSets.test.resources.srcDirs = ["src/test/resources", "src/test/java"]
 
 repositories {
+  mavenLocal()
   maven { url "http://repo.springsource.org/libs-release" }
   maven { url "http://repo.springsource.org/libs-milestone" }
   maven { url "http://repo.springsource.org/libs-snapshot" }

@@ -9,26 +9,45 @@ import org.springframework.web.WebApplicationInitializer;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 import org.springframework.web.servlet.DispatcherServlet;
+import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /**
  * @author Jon Brisbin
  */
 public class TckInitializer implements WebApplicationInitializer {
 
-  @Override public void onStartup(ServletContext servletContext) throws ServletException {
-    AnnotationConfigWebApplicationContext rootCtx = new AnnotationConfigWebApplicationContext();
-    rootCtx.register(TckConfig.class);
+	@Override public void onStartup(ServletContext servletContext) throws ServletException {
+		AnnotationConfigWebApplicationContext rootCtx = new AnnotationConfigWebApplicationContext();
+		rootCtx.register(TckConfig.class);
 
-    servletContext.addListener(new ContextLoaderListener(rootCtx));
+		servletContext.addListener(new ContextLoaderListener(rootCtx));
 
-    AnnotationConfigWebApplicationContext webCtx = new AnnotationConfigWebApplicationContext();
-    webCtx.register(RepositoryRestMvcConfiguration.class);
+		AnnotationConfigWebApplicationContext webCtx = new AnnotationConfigWebApplicationContext();
+		webCtx.register(WebConfig.class);
 
-    DispatcherServlet dispatcher = new DispatcherServlet(webCtx);
+		DispatcherServlet dispatcher = new DispatcherServlet(webCtx);
 
-    ServletRegistration.Dynamic reg = servletContext.addServlet("dispatcher", dispatcher);
-    reg.setLoadOnStartup(1);
-    reg.addMapping("/");
-  }
+		ServletRegistration.Dynamic reg = servletContext.addServlet("dispatcher", dispatcher);
+		reg.setLoadOnStartup(1);
+		reg.addMapping("/");
+	}
+
+	private static class WebConfig extends RepositoryRestMvcConfiguration {
+
+		@Override public RequestMappingHandlerMapping repositoryExporterHandlerMapping() {
+			RequestMappingHandlerMapping handlerMapping = super.repositoryExporterHandlerMapping();
+
+			LocaleChangeInterceptor localeChangeInterceptor = new LocaleChangeInterceptor();
+			localeChangeInterceptor.setParamName("locale");
+
+			handlerMapping.setInterceptors(new Object[]{
+					localeChangeInterceptor
+			});
+
+			return handlerMapping;
+		}
+
+	}
 
 }
