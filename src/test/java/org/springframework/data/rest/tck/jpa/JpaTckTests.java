@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-import javax.servlet.http.Cookie;
+import java.util.Locale;
 
 import com.jayway.jsonpath.JsonPath;
 import org.hamcrest.Matchers;
@@ -131,9 +131,9 @@ public class JpaTckTests extends AbstractTckTest {
 
 		String jsonBody = mockMvc
 				.perform(post(customers.getHref())
+						         .locale(Locale.GERMAN)
 						         .contentType(MediaType.APPLICATION_JSON)
-						         .content("{}")
-						         .cookie(new Cookie("locale", "en_US")))
+						         .content("{}"))
 				.andExpect(status().isBadRequest())
 				.andReturn().getResponse().getContentAsString();
 		System.out.println("jsonBody: " + jsonBody);
@@ -142,7 +142,7 @@ public class JpaTckTests extends AbstractTckTest {
 		           notNullValue());
 		assertThat("Error messages were localized correctly",
 		           JsonPath.read(jsonBody, "$errors[0].message").toString(),
-		           is("First name cannot be blank"));
+		           is("firstname darf nicht leer sein"));
 	}
 
 	/**
