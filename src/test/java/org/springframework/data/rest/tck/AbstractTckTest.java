@@ -38,7 +38,7 @@ import org.springframework.web.context.WebApplicationContext;
 @Transactional
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration("src/main/webapp")
-@ContextConfiguration(classes = {TckConfig.class, RepositoryRestMvcConfiguration.class})
+@ContextConfiguration(classes = {TckConfig.class, TestApplicationConfig.class})
 public abstract class AbstractTckTest {
 
   protected static final MediaType      COMPACT_JSON = MediaType.parseMediaType("application/x-spring-data-compact+json");

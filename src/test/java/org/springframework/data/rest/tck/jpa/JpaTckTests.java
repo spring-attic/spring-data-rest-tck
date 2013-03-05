@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import javax.servlet.http.Cookie;
 
 import com.jayway.jsonpath.JsonPath;
 import org.hamcrest.Matchers;
@@ -132,7 +133,7 @@ public class JpaTckTests extends AbstractTckTest {
 				.perform(post(customers.getHref())
 						         .contentType(MediaType.APPLICATION_JSON)
 						         .content("{}")
-						         .param("locale", "en_US"))
+						         .cookie(new Cookie("locale", "en_US")))
 				.andExpect(status().isBadRequest())
 				.andReturn().getResponse().getContentAsString();
 		System.out.println("jsonBody: " + jsonBody);

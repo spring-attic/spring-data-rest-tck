@@ -4,6 +4,9 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRegistration;
 
+import org.springframework.context.MessageSource;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.data.rest.webmvc.config.RepositoryRestMvcConfiguration;
 import org.springframework.web.WebApplicationInitializer;
 import org.springframework.web.context.ContextLoaderListener;
@@ -35,14 +38,20 @@ public class TckInitializer implements WebApplicationInitializer {
 
 	private static class WebConfig extends RepositoryRestMvcConfiguration {
 
+		@Bean public MessageSource messageSource() {
+			ReloadableResourceBundleMessageSource msgsrc = new ReloadableResourceBundleMessageSource();
+			msgsrc.setBasenames("/ValidationMessages");
+			msgsrc.setFallbackToSystemLocale(false);
+			return msgsrc;
+		}
+
 		@Override public RequestMappingHandlerMapping repositoryExporterHandlerMapping() {
 			RequestMappingHandlerMapping handlerMapping = super.repositoryExporterHandlerMapping();
 
-			LocaleChangeInterceptor localeChangeInterceptor = new LocaleChangeInterceptor();
-			localeChangeInterceptor.setParamName("locale");
-
+			LocaleChangeInterceptor lci = new LocaleChangeInterceptor();
+			lci.setParamName("locale");
 			handlerMapping.setInterceptors(new Object[]{
-					localeChangeInterceptor
+					lci
 			});
 
 			return handlerMapping;
