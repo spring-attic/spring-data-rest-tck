@@ -2,5 +2,9 @@
 .gradle
 out/
 build/
+bin/
 *.i*
 *.log
+.settings/
+.project
+.classpath
