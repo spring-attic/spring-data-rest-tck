@@ -7,17 +7,21 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.rest.tck.jpa.domain.Account;
 import org.springframework.data.rest.tck.jpa.domain.Address;
 import org.springframework.data.rest.tck.jpa.domain.Customer;
 import org.springframework.data.rest.tck.jpa.domain.EmailAddress;
 import org.springframework.data.rest.tck.jpa.domain.LineItem;
 import org.springframework.data.rest.tck.jpa.domain.Order;
 import org.springframework.data.rest.tck.jpa.domain.Product;
+import org.springframework.data.rest.tck.jpa.domain.User;
+import org.springframework.data.rest.tck.jpa.repository.AccountRepository;
 import org.springframework.data.rest.tck.jpa.repository.AddressRepository;
 import org.springframework.data.rest.tck.jpa.repository.CustomerRepository;
 import org.springframework.data.rest.tck.jpa.repository.LineItemRepository;
 import org.springframework.data.rest.tck.jpa.repository.OrderRepository;
 import org.springframework.data.rest.tck.jpa.repository.ProductRepository;
+import org.springframework.data.rest.tck.jpa.repository.UserRepository;
 import org.springframework.stereotype.Component;
 
 /**
@@ -32,18 +36,24 @@ public class TestDataLoader {
   private final ProductRepository  products;
   private final OrderRepository    orders;
   private final LineItemRepository lineItems;
+  private final UserRepository users;
+  private final AccountRepository accounts;
 
   @Autowired
   public TestDataLoader(CustomerRepository customers,
                         AddressRepository addresses,
                         ProductRepository products,
                         OrderRepository orders,
-                        LineItemRepository lineItems) {
+                        LineItemRepository lineItems, 
+                        UserRepository users, 
+                        AccountRepository accounts) {
     this.customers = customers;
     this.addresses = addresses;
     this.products = products;
     this.orders = orders;
     this.lineItems = lineItems;
+    this.users = users;
+    this.accounts = accounts;
   }
 
   public void loadData() {
@@ -100,6 +110,12 @@ public class TestDataLoader {
 
     orders.save(o);
   }
-
-
+  
+  public void createUsersAndAccounts() {
+  	
+  	User user = new User("Oliver", "Gierke");
+  	Account account = new Account("Twitter", users.save(user));
+  	
+  	accounts.save(account);
+  }
 }
