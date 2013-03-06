@@ -319,6 +319,15 @@ public class JpaTckTests extends AbstractTckTest {
 				.perform(get("/badlink"))
 				.andExpect(status().isNotFound());
 	}
+	
+	@Test
+	public void canAccessRelationsForEntitiesWithoutCommonSuperclass() throws Exception {
+		
+		dataLoader.createUsersAndAccounts();
+		
+		mockMvc.perform(get("/accounts/1/user")). //
+			andExpect(status().isOk());
+	}
 
 	private Link customersLink() throws Exception {
 		return discoverRootLink(CUSTOMERS_REL);
