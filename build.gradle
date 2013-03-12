@@ -102,11 +102,11 @@ dependencies {
   // Spring Data
   compile "org.springframework.data:spring-data-jpa:$sdJpaVersion"
   compile "org.springframework.data:spring-data-mongodb:$sdMongoVersion"
-  compile("org.springframework.data:spring-data-gemfire:$sdGemfireVersion") {
-    exclude module: "mockito-core"
-    exclude module: "junit-dep"
-  }
-  compile "org.springframework.data:spring-data-neo4j:$sdNeo4jVersion"
+//  compile("org.springframework.data:spring-data-gemfire:$sdGemfireVersion") {
+//    exclude module: "mockito-core"
+//    exclude module: "junit-dep"
+//  }
+//  compile "org.springframework.data:spring-data-neo4j:$sdNeo4jVersion"
   compile "org.springframework.data:spring-data-rest-webmvc:$sdRestVersion"
 
   // HSQL
