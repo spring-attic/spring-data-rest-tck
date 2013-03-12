@@ -16,7 +16,7 @@ public class TestApplicationConfig extends RepositoryRestMvcConfiguration {
 
 	@Bean public MessageSource messageSource() {
 		ReloadableResourceBundleMessageSource msgsrc = new ReloadableResourceBundleMessageSource();
-		msgsrc.setBasename("file:./src/main/resources/ValidationMessages");
+		msgsrc.setBasenames("WEB-INF/messages/ValidationMessages");
 		msgsrc.setFallbackToSystemLocale(false);
 		return msgsrc;
 	}
