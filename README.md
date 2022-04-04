@@ -1,3 +1,5 @@
+# spring-data-rest-tck is no longer actively maintained by VMware, Inc.
+
 # Spring Data REST TCK Test Suite
 
 This test suite is designed to ensure that implementations of Spring Data REST implement a contsistent REST API from version to version.
