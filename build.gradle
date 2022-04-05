@@ -53,7 +53,7 @@ project.targetCompatibility = 1.7
 sourceSets.test.resources.srcDirs = ["src/test/resources", "src/test/java"]
 
 repositories {
-  mavenCentral()
+  maven { url 'https://repo.maven.apache.org/maven2/' }
   mavenLocal()
   maven { url "http://repo.springsource.org/libs-milestone" }
   maven { url "http://m2.neo4j.org/releases" }
